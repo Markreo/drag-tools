@@ -14,11 +14,17 @@ import {DragControls, Helper} from "@react-three/drei";
 import type {Item} from "../models";
 import {BufferGeometry} from "three";
 import {useThree} from "@react-three/fiber";
+import {useInteractStore, useIsItemSelected} from "../stores";
+import {HIGHLIGHT_COLOR} from "../utils";
 
 export const DraggableItem = ({item}: { item: Item }) => {
     const {scene} = useThree();
 
+    const selectItem = useInteractStore(state => state.selectItem);
+    const isSelected = useIsItemSelected(item.id);
+
     const [collided, setCollided] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
     const matrix = useRef<Matrix4>(item.matrix.clone());
     const meshRef = useRef<Mesh>(null);
 
@@ -69,17 +75,22 @@ export const DraggableItem = ({item}: { item: Item }) => {
         setCollided(isColliding);
     };
 
-
     return (
-        <group name={item.id}>
+        <group name={item.id}
+               onClick={(e) => selectItem(item.id, e.shiftKey ? 'add' : 'replace')}
+               onPointerEnter={() => setIsHovered(true)}
+               onPointerLeave={() => setIsHovered(false)}>
             <DragControls
                 axisLock="y"
                 matrix={matrix.current}
                 autoTransform={false}
-                onDrag={(localMatrix) => matrix.current.copy(localMatrix)}
+                onDrag={(localMatrix) => {
+                    if (!isSelected) return;
+                    matrix.current.copy(localMatrix)
+                }}
                 onDragEnd={checkCollision}
             >
-                <Helper type={BoxHelper} args={["royalblue"]}/>
+                {(isHovered || isSelected) && <Helper type={BoxHelper} args={[HIGHLIGHT_COLOR]}/>}
                 <mesh ref={meshRef} position={[0, 0.5, 0]} geometry={geometry}>
                     <meshStandardMaterial color={collided ? "red" : "orange"}/>
                 </mesh>

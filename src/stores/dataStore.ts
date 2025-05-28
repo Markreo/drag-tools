@@ -2,6 +2,7 @@ import {create} from 'zustand';
 import type {Matrix4} from 'three';
 import {nanoid} from 'nanoid';
 import type {Item} from '../models';
+import {useInteractStore} from "./interactStore";
 
 type DataState = {
     items: Item[];
@@ -29,8 +30,10 @@ export const useDataStore = create<DataState>((set) => ({
                 },
             ],
         })),
-    removeItem: (id) =>
+    removeItem: (id) => {
         set((state) => ({
             items: state.items.filter((item) => item.id !== id),
-        })),
+        }));
+        useInteractStore.getState().clearSelectedItem(id);
+    },
 }));

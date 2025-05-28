@@ -4,6 +4,7 @@ import {Suspense} from "react";
 import {Matrix4, MOUSE} from "three";
 import {useDataStore, useInteractStore, useSceneStore} from "../stores";
 import {DraggableItem} from "./DraggableItem.tsx";
+import {HighLightBox} from "./HighLightBox.tsx";
 
 const MOUSE_MODE = {
     '2D': {LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN},
@@ -13,7 +14,7 @@ const MOUSE_MODE = {
 export const Scene = ({className}: { className: string }) => {
     const {viewMode} = useSceneStore();
     const {items, addItem} = useDataStore();
-    const {objectIdAdding, selectObjectIdToAdding} = useInteractStore();
+    const {objectIdAdding, selectObjectIdToAdding, clearSelectedItem} = useInteractStore();
 
     const handleClickFloor = (e: ThreeEvent<MouseEvent>) => {
         if (!objectIdAdding) return;
@@ -21,7 +22,12 @@ export const Scene = ({className}: { className: string }) => {
         selectObjectIdToAdding(undefined);
     }
 
-    return <Canvas flat className={className} onCreated={console.log}>
+    return <Canvas flat className={className}
+                   onCreated={console.log}
+                   onPointerMissed={() => {
+                       console.log("onPointerMissed");
+                       clearSelectedItem();
+                   }}>
         <ambientLight/>
         <Grid infiniteGrid={true} cellColor={"white"} sectionColor={"white"}/>
         <OrbitControls makeDefault mouseButtons={MOUSE_MODE[viewMode]} target={[0, 0, 0]}
@@ -42,6 +48,7 @@ export const Scene = ({className}: { className: string }) => {
         )}
 
         <axesHelper args={[50]}/>
+        <HighLightBox/>
         <Suspense>
             <Gltf src={'/floor.glb'} position={[0, 0.01, 0]} onPointerUp={handleClickFloor}/>
             <group name="items">
