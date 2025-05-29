@@ -1,21 +1,21 @@
 import {useThree} from "@react-three/fiber";
 import {useDataStore, useInteractStore} from "../stores";
-import {useEffect, useMemo} from "react";
-import {Box3, Box3Helper, Color, Matrix4, Object3D, Vector3} from "three";
+import {useEffect, useMemo, useState} from "react";
+import {Box3, Box3Helper, Color, Matrix4, Object3D, Quaternion, Vector3} from "three";
 import {HIGHLIGHT_COLOR} from "../utils";
 import {Html} from "@react-three/drei";
 import type {MouseEvent} from "react";
 
 export const HighLightBox = () => {
     const {scene} = useThree();
-    const itemIdsSelected  = useInteractStore(state => state.itemIdsSelected);
+    const itemIdsSelected = useInteractStore(state => state.itemIdsSelected);
     const {selectItem} = useInteractStore();
     const {removeItem, addItem, items} = useDataStore();
 
-    console.log()
+    const [triggerUpdate, setNeedToUpdate] = useState(0);
+    const [htmlPosition, setHTMLPosition] = useState<Vector3>();
 
     const boundingBox = useMemo(() => {
-        console.log('itemIdsSelected', itemIdsSelected)
         const meshes = itemIdsSelected
             .map((itemId) => scene.getObjectByName(itemId))
             .filter((obj): obj is Object3D => obj instanceof Object3D);
@@ -28,16 +28,26 @@ export const HighLightBox = () => {
         }
 
         return box;
-    }, [scene, itemIdsSelected]);
+    }, [scene, itemIdsSelected, triggerUpdate]);
 
     useEffect(() => {
-        if (!boundingBox) return;
+        if (!boundingBox || itemIdsSelected.length < 2) return;
         const newHelper = new Box3Helper(boundingBox, new Color(HIGHLIGHT_COLOR));
         scene.add(newHelper);
         return () => {
             scene.remove(newHelper);
         }
     }, [boundingBox, scene]);
+
+    useEffect(() => {
+        if (boundingBox) {
+            setHTMLPosition(oldPosition => {
+                return oldPosition ? oldPosition : boundingBox.max
+            })
+        } else {
+            setHTMLPosition(undefined)
+        }
+    }, [boundingBox]);
 
     if (!boundingBox) return null;
 
@@ -61,6 +71,34 @@ export const HighLightBox = () => {
                 }, 50)
                 break;
             }
+            case "rotate-right": {
+                const angleRadians = -0.1;
+                const rotationMatrix = new Matrix4().makeRotationY(angleRadians);
+
+                const center = new Vector3();
+                boundingBox.getCenter(center);
+
+                itemIdsSelected.forEach((itemId) => {
+                    const object = scene.getObjectByName(itemId)?.children[0];
+                    if (object) {
+                        const worldPosition = new Vector3();
+                        object.getWorldPosition(worldPosition);
+
+                        const offset = new Vector3().subVectors(worldPosition, center);
+                        offset.applyMatrix4(rotationMatrix);
+
+                        const newWorldPosition = center.clone().add(offset);
+
+                        object.position.copy(newWorldPosition);
+
+                        object.rotateY(angleRadians);
+                        object.updateMatrix()
+                    }
+                });
+
+                setNeedToUpdate(triggerUpdate + 1);
+                break;
+            }
             case "delete": {
                 itemIdsSelected.forEach((itemId) => removeItem(itemId));
                 break;
@@ -72,7 +110,7 @@ export const HighLightBox = () => {
         e.stopPropagation();
     }
 
-    return <Html position={boundingBox.max}>
+    return <Html position={htmlPosition}>
         <div style={{padding: '0.5em'}} onClick={stop}>
             <div style={{
                 background: 'white',
@@ -145,4 +183,16 @@ const ActionGroup = ({onClickAction}: { onClickAction: (event: string) => void }
         </div>
         <div style={{height: '1em', borderRight: '1px solid gray'}}></div>
     </>
+}
+
+
+function rotateObjectsAroundPivot(objects: Object3D[], pivot: Vector3, angleRadians: number) {
+    const rotationMatrix = new Matrix4().makeRotationY(angleRadians);
+
+    objects.forEach(obj => {
+        const offset = new Vector3().subVectors(obj.position, pivot);
+        offset.applyMatrix4(rotationMatrix);
+        obj.position.copy(pivot.clone().add(offset));
+        obj.rotateY(angleRadians); // Quay hướng nếu cần
+    });
 }
