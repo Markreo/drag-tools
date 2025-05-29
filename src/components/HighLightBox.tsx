@@ -60,6 +60,7 @@ export const HighLightBox = () => {
                 itemIdsSelected.forEach((itemId) => {
                     const object = scene.getObjectByName(itemId)?.children[0];
                     if (object) {
+                        applyMatrixToObject(object);
                         const objectId = items.find((item) => item.id === itemId)?.objectId;
                         if (objectId) {
                             const matrix = object.matrix.clone();
@@ -74,7 +75,7 @@ export const HighLightBox = () => {
                 break;
             }
             case "rotate-right": {
-                const angleRadians = -Math.PI/25;
+                const angleRadians = -Math.PI / 25;
                 const rotationMatrix = new Matrix4().makeRotationY(angleRadians);
 
                 const center = new Vector3();
@@ -141,6 +142,37 @@ export const HighLightBox = () => {
                     }
                 });
 
+                needsToUpdate();
+                break;
+            }
+            case "space-between": {
+                const space2M = (object1: Object3D, object2: Object3D) => {
+                    applyMatrixToObject(object1);
+                    applyMatrixToObject(object2);
+                    const box1 = new Box3().setFromObject(object1);
+                    const box2 = new Box3().setFromObject(object2);
+                    const maxX = box1.max.x;
+                    const minX = box2.min.x;
+                    const currentSpace = minX - maxX;
+                    const delta = 2 - currentSpace;
+                    object2.position.add(new Vector3(delta, 0, 0))
+                    object2.updateMatrix();
+
+                }
+                const objects = itemIdsSelected.map((itemId) => scene.getObjectByName(itemId)?.children[0]).filter(Boolean);
+                const sorted =  objects.sort((a, b) => {
+                    if (!a || !b) return 0;
+                    const boxA = new Box3().setFromObject(a);
+                    const boxB = new Box3().setFromObject(b);
+                    return boxA.min.x - boxB.min.x;
+                })
+                sorted.forEach((_, index) => {
+                    if (index > itemIdsSelected.length - 2) return;
+                    const object1 = sorted[index];
+                    const object2 = sorted[index +1];
+                    if (!object1 || !object2) return;
+                    space2M(object1, object2)
+                });
                 needsToUpdate();
                 break;
             }
