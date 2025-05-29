@@ -8,10 +8,14 @@ import type {MouseEvent} from "react";
 
 export const HighLightBox = () => {
     const {scene} = useThree();
-    const itemIdsSelected = useInteractStore(state => state.itemIdsSelected);
+    const itemIdsSelected  = useInteractStore(state => state.itemIdsSelected);
+    const {selectItem} = useInteractStore();
     const {removeItem, addItem, items} = useDataStore();
 
+    console.log()
+
     const boundingBox = useMemo(() => {
+        console.log('itemIdsSelected', itemIdsSelected)
         const meshes = itemIdsSelected
             .map((itemId) => scene.getObjectByName(itemId))
             .filter((obj): obj is Object3D => obj instanceof Object3D);
@@ -30,11 +34,9 @@ export const HighLightBox = () => {
         if (!boundingBox) return;
         const newHelper = new Box3Helper(boundingBox, new Color(HIGHLIGHT_COLOR));
         scene.add(newHelper);
-
         return () => {
             scene.remove(newHelper);
         }
-
     }, [boundingBox, scene]);
 
     if (!boundingBox) return null;
@@ -42,6 +44,7 @@ export const HighLightBox = () => {
     const onClickAction = (action: string) => {
         switch (action) {
             case "duplicate": {
+                const newIds: string[] = []
                 itemIdsSelected.forEach((itemId) => {
                     const object = scene.getObjectByName(itemId)?.children[0];
                     if (object) {
@@ -49,10 +52,13 @@ export const HighLightBox = () => {
                         if (objectId) {
                             const matrix = object.matrix.clone();
                             matrix.multiply(new Matrix4().makeTranslation(new Vector3(boundingBox.max.x - boundingBox.min.x + 1, 0, 0)));
-                            addItem(objectId, matrix)
+                            newIds.push(addItem(objectId, matrix));
                         }
                     }
                 });
+                setTimeout(() => {
+                    selectItem(newIds, 'replace');
+                }, 50)
                 break;
             }
             case "delete": {

@@ -8,7 +8,7 @@ type DataState = {
     items: Item[];
     setItems: (items: Item[]) => void;
     updateItem: (item: Item) => void;
-    addItem: (objectId: string, matrix: Matrix4) => void;
+    addItem: (objectId: string, matrix: Matrix4) => string;
     removeItem: (id: string) => void;
 }
 
@@ -19,17 +19,20 @@ export const useDataStore = create<DataState>((set) => ({
         set((state) => ({
             items: state.items.map((i) => (i.id === item.id ? item : i)),
         })),
-    addItem: (objectId, matrix) =>
+    addItem: (objectId, matrix) => {
+        const id = nanoid();
         set((state) => ({
             items: [
                 ...state.items,
                 {
-                    id: nanoid(),
+                    id: id,
                     objectId,
                     matrix: matrix.clone(), // Ensure immutability
                 },
             ],
-        })),
+        }));
+        return id;
+    },
     removeItem: (id) => {
         set((state) => ({
             items: state.items.filter((item) => item.id !== id),

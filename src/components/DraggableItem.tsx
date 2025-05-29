@@ -85,8 +85,9 @@ export const DraggableItem = ({item}: { item: Item }) => {
                 matrix={matrix.current}
                 autoTransform={false}
                 onDrag={(localMatrix) => {
-                    if (!isSelected) return;
-                    matrix.current.copy(localMatrix)
+                    if (!collided || isSelected) {
+                        matrix.current.copy(localMatrix);
+                    }
                 }}
                 onDragEnd={checkCollision}
             >
