@@ -25,7 +25,6 @@ export const Scene = ({className}: { className: string }) => {
     return <Canvas flat className={className}
                    onCreated={console.log}
                    onContextMenu={() => {
-                       console.log("onPointerMissed");
                        clearSelectedItem();
                    }}>
         <ambientLight/>

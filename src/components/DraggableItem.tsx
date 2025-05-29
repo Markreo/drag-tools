@@ -82,7 +82,6 @@ export const DraggableItem = ({item}: { item: Item }) => {
         <group
             name={item.id}
             onClick={(e) => {
-                console.log('click');
                 if (!isDragging) {
                     selectItem(item.id, e.shiftKey ? 'add' : 'replace')
                 }

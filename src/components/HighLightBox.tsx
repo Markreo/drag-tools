@@ -2,7 +2,7 @@ import {useThree} from "@react-three/fiber";
 import {useDataStore, useInteractStore, useSceneStore} from "../stores";
 import {useEffect, useMemo, useState} from "react";
 import {Box3, Box3Helper, Color, Matrix4, Object3D, Vector3} from "three";
-import {HIGHLIGHT_COLOR} from "../utils";
+import {HIGHLIGHT_COLOR, applyMatrixToObject} from "../utils";
 import {Html} from "@react-three/drei";
 import type {MouseEvent} from "react";
 
@@ -83,6 +83,7 @@ export const HighLightBox = () => {
                 itemIdsSelected.forEach((itemId) => {
                     const object = scene.getObjectByName(itemId)?.children[0];
                     if (object) {
+                        applyMatrixToObject(object);
                         const worldPosition = new Vector3();
                         object.getWorldPosition(worldPosition);
 
@@ -94,6 +95,48 @@ export const HighLightBox = () => {
                         object.position.copy(newWorldPosition);
 
                         object.rotateY(angleRadians);
+                        object.updateMatrix();
+                    }
+                });
+
+                needsToUpdate();
+                break;
+            }
+            case "align-top": {
+                const minZ = boundingBox.min.z;
+                itemIdsSelected.forEach((itemId) => {
+                    const object = scene.getObjectByName(itemId)?.children[0];
+                    if (object) {
+                        applyMatrixToObject(object);
+                        const box = new Box3().setFromObject(object);
+
+                        const currentBottomZ = box.min.z;
+                        const offsetZ = minZ - currentBottomZ;
+                        if (offsetZ) {
+                            object.position.z += offsetZ;
+                        }
+
+                        object.updateMatrix()
+                    }
+                });
+
+                needsToUpdate();
+                break;
+            }
+            case "align-bottom": {
+                const maxZ = boundingBox.max.z;
+                itemIdsSelected.forEach((itemId) => {
+                    const object = scene.getObjectByName(itemId)?.children[0];
+                    if (object) {
+                        applyMatrixToObject(object);
+                        const box = new Box3().setFromObject(object);
+
+                        const currentBottomZ = box.max.z;
+                        const offsetZ = maxZ - currentBottomZ;
+                        if (offsetZ) {
+                            object.position.z += offsetZ;
+                        }
+
                         object.updateMatrix()
                     }
                 });
