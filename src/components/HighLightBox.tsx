@@ -1,5 +1,5 @@
 import {useThree} from "@react-three/fiber";
-import {useDataStore, useInteractStore} from "../stores";
+import {useDataStore, useInteractStore, useSceneStore} from "../stores";
 import {useEffect, useMemo, useState} from "react";
 import {Box3, Box3Helper, Color, Matrix4, Object3D, Vector3} from "three";
 import {HIGHLIGHT_COLOR} from "../utils";
@@ -9,10 +9,10 @@ import type {MouseEvent} from "react";
 export const HighLightBox = () => {
     const {scene} = useThree();
     const itemIdsSelected = useInteractStore(state => state.itemIdsSelected);
+    const {updateCount, isDragging, needsToUpdate} = useSceneStore();
     const {selectItem} = useInteractStore();
     const {removeItem, addItem, items} = useDataStore();
 
-    const [triggerUpdate, setNeedToUpdate] = useState(0);
     const [htmlPosition, setHTMLPosition] = useState<Vector3>();
 
     const boundingBox = useMemo(() => {
@@ -28,16 +28,18 @@ export const HighLightBox = () => {
         }
 
         return box;
-    }, [scene, itemIdsSelected, triggerUpdate]);
+    }, [scene, itemIdsSelected, updateCount]);
 
     useEffect(() => {
-        if (!boundingBox || itemIdsSelected.length < 2) return;
+        // todo: refactor to r3f
+        if (!boundingBox || itemIdsSelected.length < 2 || isDragging) return;
         const newHelper = new Box3Helper(boundingBox, new Color(HIGHLIGHT_COLOR));
+        newHelper.name = 'groupBox'
         scene.add(newHelper);
         return () => {
             scene.remove(newHelper);
         }
-    }, [boundingBox, scene]);
+    }, [boundingBox, scene, isDragging]);
 
     useEffect(() => {
         if (boundingBox) {
@@ -96,7 +98,7 @@ export const HighLightBox = () => {
                     }
                 });
 
-                setNeedToUpdate(triggerUpdate + 1);
+                needsToUpdate();
                 break;
             }
             case "delete": {

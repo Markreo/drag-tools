@@ -37,7 +37,7 @@ export const useInteractStore = create<InteractState>((set, get) => ({
     clearSelectedItem: (id?: string) => {
         if (id) {
             set({itemIdsSelected: get().itemIdsSelected.filter(itemId => itemId !== id)});
-        }  else {
+        } else {
             set({itemIdsSelected: []})
         }
     },

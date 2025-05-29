@@ -15,7 +15,7 @@ import {DragControls, Helper} from "@react-three/drei";
 import type {Item} from "../models";
 import {BufferGeometry} from "three";
 import {useThree} from "@react-three/fiber";
-import {useInteractStore, useIsItemSelected} from "../stores";
+import {useInteractStore, useIsItemSelected, useSceneStore} from "../stores";
 import {HIGHLIGHT_COLOR} from "../utils";
 
 export const DraggableItem = ({item}: { item: Item }) => {
@@ -23,12 +23,12 @@ export const DraggableItem = ({item}: { item: Item }) => {
 
     const selectItem = useInteractStore(state => state.selectItem);
     const itemIdsSelected = useInteractStore(state => state.itemIdsSelected);
+    const {isDragging, needsToUpdate, setDragging} = useSceneStore();
     const isSelected = useIsItemSelected(item.id);
 
     const [collided, setCollided] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const matrix = useRef<Matrix4>(item.matrix.clone());
-    const draggingRef = useRef(false);
     const meshRef = useRef<Mesh>(null);
 
     const geometry: BufferGeometry | undefined = useMemo(() => {
@@ -83,7 +83,7 @@ export const DraggableItem = ({item}: { item: Item }) => {
             name={item.id}
             onClick={(e) => {
                 console.log('click');
-                if (!draggingRef.current) {
+                if (!isDragging) {
                     selectItem(item.id, e.shiftKey ? 'add' : 'replace')
                 }
             }}
@@ -94,7 +94,7 @@ export const DraggableItem = ({item}: { item: Item }) => {
                 axisLock="y"
                 matrix={matrix.current}
                 autoTransform={false}
-                onDragStart={() => draggingRef.current = true}
+                onDragStart={() => setDragging(true)}
                 onDrag={(localMatrix, _, __, deltaWorldMatrix) => {
                     if (!collided || isSelected) {
                         matrix.current.copy(localMatrix);
@@ -115,14 +115,15 @@ export const DraggableItem = ({item}: { item: Item }) => {
                 }}
                 onDragEnd={() => {
                     setTimeout(() => {
-                        draggingRef.current = false;
+                        setDragging(false);
                         checkCollision()
+                        needsToUpdate()
                     }, 50)
                 }}
             >
                 {(isHovered || isSelected) && <Helper type={BoxHelper} args={[HIGHLIGHT_COLOR]}/>}
                 <mesh ref={meshRef} position={[0, 0.5, 0]} geometry={geometry}>
-                    <meshStandardMaterial color={collided ? "red" : "orange"} />
+                    <meshStandardMaterial color={collided ? "red" : "orange"}/>
                 </mesh>
             </DragControls>
         </group>
