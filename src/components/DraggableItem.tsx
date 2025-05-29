@@ -7,7 +7,8 @@ import {
     BoxHelper,
     Box3,
     Matrix4,
-    Mesh
+    Mesh,
+    Vector3
 } from "three";
 import {useMemo, useRef, useState} from "react";
 import {DragControls, Helper} from "@react-three/drei";
@@ -21,11 +22,13 @@ export const DraggableItem = ({item}: { item: Item }) => {
     const {scene} = useThree();
 
     const selectItem = useInteractStore(state => state.selectItem);
+    const itemIdsSelected = useInteractStore(state => state.itemIdsSelected);
     const isSelected = useIsItemSelected(item.id);
 
     const [collided, setCollided] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const matrix = useRef<Matrix4>(item.matrix.clone());
+    const draggingRef = useRef(false);
     const meshRef = useRef<Mesh>(null);
 
     const geometry: BufferGeometry | undefined = useMemo(() => {
@@ -76,26 +79,53 @@ export const DraggableItem = ({item}: { item: Item }) => {
     };
 
     return (
-        <group name={item.id}
-               onClick={(e) => selectItem(item.id, e.shiftKey ? 'add' : 'replace')}
-               onPointerEnter={() => setIsHovered(true)}
-               onPointerLeave={() => setIsHovered(false)}>
+        <group
+            name={item.id}
+            onClick={(e) => {
+                console.log('click');
+                if (!draggingRef.current) {
+                    selectItem(item.id, e.shiftKey ? 'add' : 'replace')
+                }
+            }}
+            onPointerEnter={() => setIsHovered(true)}
+            onPointerLeave={() => setIsHovered(false)}
+        >
             <DragControls
                 axisLock="y"
                 matrix={matrix.current}
                 autoTransform={false}
-                onDrag={(localMatrix) => {
+                onDragStart={() => draggingRef.current = true}
+                onDrag={(localMatrix, _, __, deltaWorldMatrix) => {
                     if (!collided || isSelected) {
                         matrix.current.copy(localMatrix);
+
+                        if (isSelected && itemIdsSelected.length > 1) {
+                            itemIdsSelected.forEach(id => {
+                                if (id === item.id) return;
+                                const obj = scene.getObjectByName(id)?.children[0];
+                                if (obj) {
+                                    const worldPos = new Vector3().setFromMatrixPosition(obj.matrixWorld);
+                                    worldPos.applyMatrix4(deltaWorldMatrix);
+                                    obj.position.copy(worldPos);
+                                    obj.updateMatrix()
+                                }
+                            });
+                        }
                     }
                 }}
-                onDragEnd={checkCollision}
+                onDragEnd={() => {
+                    setTimeout(() => {
+                        draggingRef.current = false;
+                        checkCollision()
+                    }, 50)
+                }}
             >
                 {(isHovered || isSelected) && <Helper type={BoxHelper} args={[HIGHLIGHT_COLOR]}/>}
                 <mesh ref={meshRef} position={[0, 0.5, 0]} geometry={geometry}>
-                    <meshStandardMaterial color={collided ? "red" : "orange"}/>
+                    <meshStandardMaterial color={collided ? "red" : "orange"} />
                 </mesh>
             </DragControls>
         </group>
     );
+
 };

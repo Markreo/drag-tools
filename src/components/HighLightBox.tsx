@@ -1,7 +1,7 @@
 import {useThree} from "@react-three/fiber";
 import {useDataStore, useInteractStore} from "../stores";
 import {useEffect, useMemo, useState} from "react";
-import {Box3, Box3Helper, Color, Matrix4, Object3D, Quaternion, Vector3} from "three";
+import {Box3, Box3Helper, Color, Matrix4, Object3D, Vector3} from "three";
 import {HIGHLIGHT_COLOR} from "../utils";
 import {Html} from "@react-three/drei";
 import type {MouseEvent} from "react";
@@ -72,7 +72,7 @@ export const HighLightBox = () => {
                 break;
             }
             case "rotate-right": {
-                const angleRadians = -0.1;
+                const angleRadians = -Math.PI/25;
                 const rotationMatrix = new Matrix4().makeRotationY(angleRadians);
 
                 const center = new Vector3();
@@ -183,16 +183,4 @@ const ActionGroup = ({onClickAction}: { onClickAction: (event: string) => void }
         </div>
         <div style={{height: '1em', borderRight: '1px solid gray'}}></div>
     </>
-}
-
-
-function rotateObjectsAroundPivot(objects: Object3D[], pivot: Vector3, angleRadians: number) {
-    const rotationMatrix = new Matrix4().makeRotationY(angleRadians);
-
-    objects.forEach(obj => {
-        const offset = new Vector3().subVectors(obj.position, pivot);
-        offset.applyMatrix4(rotationMatrix);
-        obj.position.copy(pivot.clone().add(offset));
-        obj.rotateY(angleRadians); // Quay hướng nếu cần
-    });
 }
